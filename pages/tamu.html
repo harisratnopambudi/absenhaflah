@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Pengunjung (Autentikasi Reset)</title>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        /* Styling dasar untuk body */
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        /* Styling untuk judul utama */
+        h1 {
+            color: #0056b3;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        /* Kontrol filter dan sort */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            width: 90%;
+            max-width: 1000px;
+            justify-content: center;
+            align-items: center;
+        }
+        .controls label {
+            font-weight: 600;
+            color: #555;
+            margin-right: 5px;
+        }
+        .controls input[type="text"],
+        .controls select {
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            flex-grow: 1;
+            max-width: 250px;
+        }
+        .controls button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,123,255,0.2);
+        }
+        .controls button:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+        .controls button:active {
+            transform: translateY(0);
+        }
+        /* Styling untuk tombol Export */
+        #exportExcelBtn {
+            background-color: #28a745;
+            box-shadow: 0 2px 5px rgba(40,167,69,0.2);
+        }
+        #exportExcelBtn:hover {
+            background-color: #218838;
+        }
+        /* Styling untuk tombol Reset Data */
+        #resetDataBtn {
+            background-color: #ffc107; /* Warna kuning/oranye untuk Reset */
+            color: #333;
+            box-shadow: 0 2px 5px rgba(255,193,7,0.2);
+        }
+        #resetDataBtn:hover {
+            background-color: #e0a800;
+        }
+
+        /* Styling untuk tabel daftar pengunjung */
+        #visitor-list {
+            width: 90%;
+            max-width: 1000px;
+            margin-top: 20px;
+            border-collapse: collapse;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        /* Styling untuk header tabel (th) dan sel data (td) */
+        #visitor-list th, #visitor-list td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        /* Styling khusus untuk header tabel */
+        #visitor-list th {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+        }
+        /* Indikator sortir */
+        #visitor-list th.sort-asc::after { content: ' ▲'; }
+        #visitor-list th.sort-desc::after { content: ' ▼'; }
+
+        /* Styling untuk baris genap pada tabel */
+        #visitor-list tr:nth-child(even) {
+            background-color: #f2f7fc;
+        }
+        /* Styling untuk baris ganjil pada tabel */
+        #visitor-list tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+        /* Efek hover pada baris tabel */
+        #visitor-list tr:hover {
+            background-color: #e9f5ff;
+            cursor: default;
+        }
+        /* Styling untuk pengunjung baru yang ditambahkan */
+        .new-visitor {
+            background-color: #d4edda !important;
+            animation: fadeInOut 4s forwards;
+        }
+
+        /* Keyframes untuk animasi fade in dan fade out */
+        @keyframes fadeInOut {
+            0% { background-color: #d4edda; opacity: 0.5; }
+            20% { background-color: #d4edda; opacity: 1; }
+            80% { background-color: #d4edda; opacity: 1; }
+            100% { background-color: #f9f9f9; opacity: 1; }
+        }
+
+        /* Responsifitas untuk kontrol */
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .controls input[type="text"],
+            .controls select,
+            .controls button {
+                width: 100%;
+                max-width: none;
+            }
+        }
+
+        /* Styling untuk Modal Konfirmasi Kustom */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.visible .modal-content {
+            transform: translateY(0);
+        }
+        .modal-content p {
+            font-size: 1.2em;
+            margin-bottom: 25px;
+            color: #333;
+        }
+        .modal-buttons button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+        .modal-buttons .btn-yes {
+            background-color: #dc3545; /* Merah untuk Yes */
+            color: white;
+            border: none;
+        }
+        .modal-buttons .btn-yes:hover {
+            background-color: #c82333;
+        }
+        .modal-buttons .btn-no {
+            background-color: #6c757d; /* Abu-abu untuk No */
+            color: white;
+            border: none;
+        }
+        .modal-buttons .btn-no:hover {
+            background-color: #5a6268;
+        }
+        /* Styling untuk input text di dalam modal (email/password) */
+        #resetEmailInput, #resetPasswordInput {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 10px; /* Kurangi margin-bottom agar lebih rapat */
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Daftar Pengunjung</h1>
+
+    <div class="controls">
+        <div>
+            <label for="searchFilter">Filter Nama/Kelas:</label>
+            <input type="text" id="searchFilter" placeholder="Cari nama atau kelas...">
+        </div>
+        <div>
+            <label for="sortBy">Urutkan Berdasarkan:</label>
+            <select id="sortBy">
+                <option value="timestamp_desc">Waktu Scan (Terbaru)</option>
+                <option value="timestamp_asc">Waktu Scan (Terlama)</option>
+                <option value="nama_asc">Nama (A-Z)</option>
+                <option value="nama_desc">Nama (Z-A)</option>
+                <option value="kelas_asc">Kelas (A-Z)</option>
+                <option value="kelas_desc">Kelas (Z-A)</option>
+            </select>
+        </div>
+        <button id="exportExcelBtn">Export ke Excel (CSV)</button>
+        <button id="resetDataBtn">Reset Data Pengunjung</button>
+    </div>
+
+    <table id="visitor-list">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th data-sort="nama">Nama Pengunjung</th>
+                <th data-sort="kelas">Kelas</th>
+                <th data-sort="timestamp">Waktu Scan</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <p id="modalMessage"></p>
+            <input type="email" id="resetEmailInput" placeholder="Email Admin" style="display: none;">
+            <input type="password" id="resetPasswordInput" placeholder="Password Admin" style="display: none;">
+            <div class="modal-buttons">
+                <button class="btn-yes" id="modalConfirmYes">Ya</button>
+                <button class="btn-no" id="modalConfirmNo">Tidak</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Konfigurasi Firebase Anda ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCMNdxvmAhrKgfwKNzPmSlfFtrbhlawYXE", // GANTI DENGAN API KEY ANDA
+            authDomain: "absen-tamu-undangan-haflah.firebaseapp.com", // GANTI DENGAN AUTH DOMAIN ANDA
+            databaseURL: "https://absen-tamu-undangan-haflah-default-rtdb.asia-southeast1.firebasedatabase.app", // GANTI DENGAN DATABASE URL ANDA
+            projectId: "absen-tamu-undangan-haflah", // GANTI DENGAN PROJECT ID ANDA
+            storageBucket: "absen-tamu-undangan-haflah.firebasestorage.app", // GANTI DENGAN STORAGE BUCKET ANDA
+            messagingSenderId: "298086025599", // GANTI DENGAN MESSAGING SENDER ID ANDA
+            appId: "1:298086025599:web:818f9a8cd794f0f023724a", // GANTI DENGAN APP ID ANDA
+            measurementId: "G-P5E6HY528V" // GANTI DENGAN MEASUREMENT ID ANDA (opsional jika tidak pakai Analytics)
+        };
+        // --- Akhir Konfigurasi Firebase Anda ---
+
+        // Inisialisasi Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth(); // Inisialisasi Firebase Auth
+        const database = firebase.database();
+        const visitorsRef = database.ref('pengunjung'); 
+
+        const visitorListBody = document.querySelector('#visitor-list tbody');
+        const searchFilterInput = document.getElementById('searchFilter');
+        const sortBySelect = document.getElementById('sortBy');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const resetDataBtn = document.getElementById('resetDataBtn');
+
+        let allVisitorsData = [];
+        let currentSortColumn = 'timestamp';
+        let currentSortOrder = 'desc';
+
+        const confirmationModal = document.getElementById('confirmationModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const resetEmailInput = document.getElementById('resetEmailInput'); // Input email untuk reset
+        const resetPasswordInput = document.getElementById('resetPasswordInput'); // Input password untuk reset
+        const modalConfirmYes = document.getElementById('modalConfirmYes');
+        const modalConfirmNo = document.getElementById('modalConfirmNo');
+        let confirmationCallback = null;
+        let requiresAuthForReset = false; // Flag untuk indikasi apakah perlu autentikasi untuk operasi saat ini
+
+        /**
+         * Menampilkan modal konfirmasi kustom.
+         * @param {string} message - Pesan yang akan ditampilkan di modal.
+         * @param {function} callback - Fungsi yang akan dipanggil jika pengguna mengklik 'Ya'.
+         * @param {boolean} authRequired - Apakah perlu input email/password untuk autentikasi.
+         */
+        function showConfirmationModal(message, callback, authRequired = false) {
+            console.log("DEBUG: showConfirmationModal dipanggil. Pesan:", message);
+            modalMessage.textContent = message;
+            confirmationCallback = callback;
+            requiresAuthForReset = authRequired;
+
+            if (authRequired) {
+                resetEmailInput.style.display = 'block';
+                resetPasswordInput.style.display = 'block';
+                resetEmailInput.value = ''; // Kosongkan input
+                resetPasswordInput.value = ''; // Kosongkan input
+                resetEmailInput.focus();
+            } else {
+                resetEmailInput.style.display = 'none';
+                resetPasswordInput.style.display = 'none';
+            }
+
+            // Hapus listener lama untuk menghindari duplikasi
+            modalConfirmYes.removeEventListener('click', modalYesHandler);
+            modalConfirmYes.addEventListener('click', modalYesHandler);
+            
+            modalConfirmNo.removeEventListener('click', modalNoHandler);
+            modalConfirmNo.addEventListener('click', modalNoHandler);
+            
+            confirmationModal.classList.add('visible');
+        }
+
+        /**
+         * Menyembunyikan modal konfirmasi kustom.
+         */
+        function hideConfirmationModal() {
+            console.log("DEBUG: hideConfirmationModal dipanggil.");
+            confirmationModal.classList.remove('visible');
+            // Hapus event listener saat modal disembunyikan untuk menghindari duplikasi
+            modalConfirmYes.removeEventListener('click', modalYesHandler);
+            modalConfirmNo.removeEventListener('click', modalNoHandler);
+            confirmationCallback = null;
+            requiresAuthForReset = false;
+        }
+
+        // --- HANDLER FUNCTIONS FOR MODAL BUTTONS ---
+        async function modalYesHandler() { // Gunakan async karena akan ada operasi Promise (signInWithEmailAndPassword)
+            console.log("DEBUG: Modal 'Ya' button diklik (handler).");
+            const currentCallback = confirmationCallback; 
+            
+            if (requiresAuthForReset) {
+                const email = resetEmailInput.value.trim();
+                const password = resetPasswordInput.value.trim();
+
+                if (!email || !password) {
+                    alert('Email dan password harus diisi untuk mereset data.');
+                    console.warn("DEBUG: Email atau password kosong.");
+                    return; // Jangan sembunyikan modal, biarkan user coba lagi
+                }
+
+                try {
+                    // Coba login dengan email dan password yang diberikan
+                    await auth.signInWithEmailAndPassword(email, password);
+                    console.log("DEBUG: Autentikasi berhasil.");
+                    hideConfirmationModal(); // Sembunyikan modal setelah autentikasi berhasil
+                    if (currentCallback) {
+                        currentCallback(true); // Lanjutkan dengan operasi reset data
+                    }
+                } catch (error) {
+                    console.error("DEBUG: Autentikasi gagal:", error);
+                    alert(`Autentikasi gagal: ${error.message}. Pastikan email dan password benar.`);
+                    // Jangan sembunyikan modal, biarkan user coba lagi atau batalkan
+                    if (currentCallback) {
+                        currentCallback(false); // Indikasikan pembatalan
+                    }
+                }
+            } else {
+                // Jika tidak memerlukan autentikasi, langsung panggil callback
+                hideConfirmationModal();
+                if (currentCallback) {
+                    console.log("DEBUG: Memanggil confirmationCallback (Ya).");
+                    currentCallback(true);
+                }
+            }
+        }
+
+        function modalNoHandler() {
+            console.log("DEBUG: Modal 'Tidak' button diklik (handler).");
+            const currentCallback = confirmationCallback;
+            hideConfirmationModal();
+            if (currentCallback) {
+                console.log("DEBUG: Memanggil confirmationCallback (Tidak).");
+                currentCallback(false);
+            }
+        }
+        // --- END HANDLER FUNCTIONS ---
+
+        // Inisialisasi listener data segera setelah script dimuat
+        initializeDataListeners();
+        resetDataBtn.disabled = false; // Aktifkan tombol reset secara default
+
+        /**
+         * Fungsi untuk menginisialisasi listener data Firebase.
+         */
+        function initializeDataListeners() {
+            visitorsRef.off('value'); // Lepaskan listener sebelumnya jika ada
+            visitorsRef.on('value', (snapshot) => {
+                const visitorsObject = snapshot.val();
+                allVisitorsData = [];
+                if (visitorsObject) {
+                    // Konversi objek pengunjung menjadi array dan tambahkan isInitialLoad flag
+                    allVisitorsData = Object.keys(visitorsObject).map(key => ({
+                        id: key,
+                        ...visitorsObject[key],
+                        isInitialLoad: true
+                    }));
+                }
+                updateVisitorList(); // Perbarui daftar setelah data diterima
+            }, (error) => {
+                console.error("Firebase Read Error:", error);
+                visitorListBody.innerHTML = `<tr><td colspan="4" style="color: red; text-align: center;">Gagal memuat data pengunjung: ${error.message}.</td></tr>`;
+            });
+        }
+
+        /**
+         * Memperbarui tabel pengunjung berdasarkan filter dan sortir yang aktif.
+         */
+        function updateVisitorList() {
+            let filteredVisitors = [...allVisitorsData]; // Buat salinan array untuk filter/sort
+
+            const searchTerm = searchFilterInput.value.toLowerCase().trim();
+            if (searchTerm) {
+                filteredVisitors = filteredVisitors.filter(visitor => {
+                    const nameMatch = visitor.nama.toLowerCase().includes(searchTerm);
+                    const classMatch = (visitor.kelas || '').toLowerCase().includes(searchTerm);
+                    return nameMatch || classMatch;
+                });
+            }
+
+            const sortOption = sortBySelect.value;
+            const [column, order] = sortOption.split('_');
+
+            filteredVisitors.sort((a, b) => {
+                let valA, valB;
+
+                if (column === 'timestamp') {
+                    valA = a.timestamp;
+                    valB = b.timestamp;
+                } else if (column === 'nama') {
+                    valA = (a.nama || '').toLowerCase();
+                    valB = (b.nama || '').toLowerCase();
+                } else if (column === 'kelas') {
+                    valA = (a.kelas || '').toLowerCase();
+                    valB = (b.kelas || '').toLowerCase();
+                }
+
+                if (valA < valB) {
+                    return order === 'asc' ? -1 : 1;
+                }
+                if (valA > valB) {
+                    return order === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+
+            // Perbarui indikator sortir di header tabel
+            document.querySelectorAll('#visitor-list th').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.dataset.sort === column) {
+                    th.classList.add(`sort-${order}`);
+                }
+            });
+
+            visitorListBody.innerHTML = ''; // Kosongkan tabel sebelum mengisi ulang
+            let visitorCount = 0;
+
+            if (filteredVisitors.length === 0) {
+                const noDataRow = visitorListBody.insertRow();
+                const cell = noDataRow.insertCell(0);
+                cell.colSpan = 4; // Spanning semua kolom
+                cell.textContent = "Tidak ada data pengunjung yang cocok.";
+                cell.style.textAlign = "center";
+                cell.style.padding = "20px";
+                cell.style.color = "#888";
+                return;
+            }
+
+            filteredVisitors.forEach(visitorData => {
+                visitorCount++;
+
+                const newRow = visitorListBody.insertRow();
+                
+                const cellNo = newRow.insertCell(0);
+                const cellName = newRow.insertCell(1);
+                const cellClass = newRow.insertCell(2);
+                const cellTime = newRow.insertCell(3);
+
+                cellNo.textContent = visitorCount;
+                cellName.textContent = visitorData.nama;
+                cellClass.textContent = visitorData.kelas || 'Tidak Diketahui';
+
+                const date = new Date(visitorData.timestamp);
+                cellTime.textContent = date.toLocaleString('id-ID');
+
+                // Tambahkan kelas animasi jika bukan load awal
+                if (!visitorData.isInitialLoad) {
+                     newRow.classList.add('new-visitor');
+                     // Hapus kelas animasi setelah beberapa detik
+                     setTimeout(() => {
+                         newRow.classList.remove('new-visitor');
+                     }, 4000);
+                }
+            });
+        }
+
+        // Event listeners untuk filter dan sort
+        searchFilterInput.addEventListener('keyup', updateVisitorList);
+        sortBySelect.addEventListener('change', updateVisitorList);
+
+        // Event listener untuk sorting header tabel
+        document.querySelectorAll('#visitor-list th[data-sort]').forEach(header => {
+            header.addEventListener('click', () => {
+                const column = header.dataset.sort;
+                let order = 'asc';
+
+                // Jika kolom yang sama diklik, balik urutan
+                if (currentSortColumn === column) {
+                    order = currentSortOrder === 'asc' ? 'desc' : 'asc';
+                }
+
+                sortBySelect.value = `${column}_${order}`; // Perbarui nilai select
+                currentSortColumn = column;
+                currentSortOrder = order;
+
+                updateVisitorList(); // Perbarui daftar dengan urutan baru
+            });
+        });
+
+        function exportToCsv() {
+            if (allVisitorsData.length === 0) {
+                showConfirmationModal("Tidak ada data pengunjung untuk diekspor.", () => {});
+                return;
+            }
+
+            const headers = ["No.", "Nama Pengunjung", "Kelas", "Waktu Scan"];
+            // Buat baris header CSV
+            let csvContent = headers.map(header => `"${header}"`).join(";") + "\n";
+
+            const rows = [];
+            // Ambil data dari tabel yang saat ini ditampilkan (setelah filter/sort)
+            document.querySelectorAll('#visitor-list tbody tr').forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length === headers.length) {
+                    // Amankan string dengan mengutip dan menggandakan tanda kutip ganda
+                    const rowData = Array.from(cells).map(cell => `"${cell.textContent.trim().replace(/"/g, '""')}"`);
+                    rows.push(rowData.join(";"));
+                }
+            });
+            csvContent += rows.join("\n");
+            
+            // Buat Blob dan unduh file menggunakan FileSaver.js
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            saveAs(blob, `Daftar_Pengunjung_${new Date().toLocaleDateString('id-ID')}.csv`);
+        }
+
+        exportExcelBtn.addEventListener('click', exportToCsv);
+
+        /**
+         * Fungsi untuk mereset/mengosongkan semua data pengunjung dari Firebase.
+         * Memerlukan autentikasi admin sebelum melakukan reset.
+         */
+        function resetVisitorsData() {
+            console.log("DEBUG: Tombol Reset Data diklik."); 
+
+            // Tampilkan modal yang meminta email dan password untuk autentikasi
+            showConfirmationModal("Untuk mengosongkan semua data pengunjung, masukkan email dan password akun admin Firebase Anda di bawah ini, lalu klik 'Ya'. Tindakan ini tidak dapat dibatalkan!", async (confirmed) => {
+                if (confirmed) {
+                    // Jika autentikasi berhasil (confirmed adalah true dari modalYesHandler), lanjutkan reset
+                    console.log("DEBUG: Autentikasi berhasil, mencoba mereset data di Firebase Realtime Database...");
+                    visitorsRef.set({}) // Mengatur node 'pengunjung' menjadi objek kosong
+                        .then(() => {
+                            console.log("DEBUG: Firebase Reset: Data berhasil direset di Realtime Database.");
+                            // Karena kita menggunakan listener 'value', allVisitorsData akan otomatis kosong
+                            // dan updateVisitorList() akan dipicu otomatis oleh Firebase.
+                            showConfirmationModal("Semua data pengunjung berhasil direset!", () => {});
+                            setTimeout(() => hideConfirmationModal(), 2000); // Sembunyikan modal setelah 2 detik
+                        })
+                        .catch((error) => {
+                            console.error("DEBUG: Firebase Reset Error:", error);
+                            showConfirmationModal(`Gagal mereset data: ${error.message}`, () => {});
+                        });
+                } else {
+                    console.log("DEBUG: Firebase Reset: Reset dibatalkan oleh pengguna atau autentikasi gagal.");
+                }
+            }, true); // Parameter 'true' ini menandakan bahwa autentikasi diperlukan untuk konfirmasi ini
+        }
+
+        resetDataBtn.addEventListener('click', resetVisitorsData);
+    </script>
+</body>
+</html>

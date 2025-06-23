@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Panitia</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script> <!-- Firebase Authentication SDK -->
+    <link rel="stylesheet" href="../css/login.css">
+</head>
+<body>
+
+    <h1>Login Panitia</h1>
+
+    <div class="login-container">
+        <div class="input-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="Masukkan email Anda" required>
+        </div>
+        <div class="input-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Masukkan password Anda" required>
+        </div>
+        <button id="loginBtn">Login</button>
+        <p id="message"></p>
+    </div>
+
+    <!-- Modal Konfirmasi/Informasi Kustom (digunakan untuk pesan sukses/gagal login) -->
+    <div id="infoModal" class="modal-overlay">
+        <div class="modal-content">
+            <p id="infoModalMessage"></p>
+            <div class="modal-buttons">
+                <button class="btn-ok" id="infoModalOk">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/login.js"></script>
+</body>
+</html>

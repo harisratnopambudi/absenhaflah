@@ -1,0 +1,62 @@
+/* Global Styles */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc; /* light slate 50 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 1.5rem; /* p-6 */
+}
+
+.container {
+    max-width: 32rem; /* max-w-xl */
+    width: 100%;
+    background-color: #ffffff;
+    border-radius: 1.5rem; /* rounded-3xl */
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05), 0 5px 15px rgba(0, 0, 0, 0.03); /* subtle, layered shadow */
+    padding: 2.5rem; /* p-10 */
+    text-align: center;
+    animation: fadeIn 0.8s ease-out;
+}
+
+.link-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* teks rata kiri */
+    text-align: left; /* teks rata kiri */
+    background-color: #f1f5f9; /* slate 100 */
+    padding: 1.5rem 2rem; /* p-6 px-8 */
+    border-radius: 1rem; /* rounded-xl */
+    transition: all 0.25s ease-in-out;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e2e8f0; /* slate 200 */
+    text-decoration: none;
+}
+
+.link-card:hover {
+    transform: translateY(-0.25rem); /* sedikit naik */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); /* bayangan lebih menonjol */
+    background-color: #e2e8f0; /* slate 200 */
+}
+
+.link-card-title {
+    font-weight: 600; /* semibold */
+    font-size: 1.25rem; /* text-xl */
+    color: #1e293b; /* slate 900 */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* space-x-2 */
+    margin-bottom: 0.25rem; /* mb-1 */
+}
+
+.link-card-description {
+    font-size: 0.875rem; /* text-sm */
+    color: #64748b; /* slate 600 */
+}
+
+/* Keyframes untuk animasi */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+} 

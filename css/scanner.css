@@ -1,0 +1,82 @@
+/* Scanner Page Styles */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+/* Styling untuk area pembaca QR code */
+#reader {
+    width: 90vw; /* Lebar responsif */
+    max-width: 400px; /* Lebar maksimum */
+    border: 2px solid #007bff; /* Warna border biru */
+    border-radius: 8px; /* Sudut membulat */
+    overflow: hidden; /* Pastikan konten tidak meluber */
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2); /* Shadow untuk efek lebih baik */
+}
+
+/* Styling untuk hasil scan */
+#result {
+    margin-top: 20px;
+    font-size: 1.3em;
+    color: #007bff; /* Warna teks biru */
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+    background-color: #e6f2ff; /* Background biru muda */
+    border-radius: 5px;
+    width: 90vw;
+    max-width: 380px;
+}
+
+/* Styling untuk pesan status sukses */
+.status-message {
+    margin-top: 10px;
+    font-size: 1em;
+    color: #28a745; /* Warna hijau */
+    font-weight: 500;
+}
+
+/* Styling untuk pesan status error */
+.error-message {
+    margin-top: 10px;
+    font-size: 1em;
+    color: #dc3545; /* Warna merah */
+    font-weight: 500;
+}
+
+/* Styling untuk pesan sedang memindai */
+.scanning-message {
+    margin-top: 10px;
+    font-size: 1em;
+    color: #555;
+    font-weight: 500;
+}
+
+/* Styling untuk pesan loading */
+#loading-message {
+    font-size: 1.1em;
+    color: #007bff;
+    margin-top: 20px;
+    font-weight: bold;
+    display: none; /* Sembunyikan karena scanner langsung dimulai */
+}
+
+/* Styling untuk pesan "Sudah Hadir" */
+.already-present-message {
+    margin-top: 10px;
+    font-size: 1em;
+    color: #ff8c00; /* Warna oranye terang */
+    font-weight: 500;
+}
+
+h1 {
+    color: #0056b3; /* Warna judul lebih gelap */
+    margin-bottom: 25px;
+} 

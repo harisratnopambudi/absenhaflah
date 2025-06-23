@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard Absen</title>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
+</head>
+<body>
+  <h1>Dashboard Kehadiran</h1>
+  <table border="1" cellpadding="5">
+    <thead>
+      <tr>
+        <th>Nama</th>
+        <th>Kelas</th>
+        <th>Status</th>
+        <th>Waktu</th>
+      </tr>
+    </thead>
+    <tbody id="absenList"></tbody>
+  </table>
+
+  <script>
+    var firebaseConfig = {
+      apiKey: "AIzaSyCMNdxvmAhrKgfwKNzPmSlfFtrbhlawYXE",
+      authDomain: "absen-tamu-undangan-haflah.firebaseapp.com",
+      databaseURL: "https://absen-tamu-undangan-haflah-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "absen-tamu-undangan-haflah",
+      storageBucket: "absen-tamu-undangan-haflah.appspot.com",
+      messagingSenderId: "298086025599",
+      appId: "1:298086025599:web:42f92cc7dd8cab7423724a",
+      measurementId: "G-6KVLTT6WC5"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    var database = firebase.database();
+
+    var absenList = document.getElementById("absenList");
+
+    database.ref('absen').on('value', (snapshot) => {
+      absenList.innerHTML = '';
+      snapshot.forEach((childSnapshot) => {
+        var data = childSnapshot.val();
+        var row = `<tr>
+          <td>${data.nama}</td>
+          <td>${data.kelas}</td>
+          <td>${data.status}</td>
+          <td>${data.waktu || '-'}</td>
+        </tr>`;
+        absenList.innerHTML += row;
+      });
+    });
+  </script>
+</body>
+</html>

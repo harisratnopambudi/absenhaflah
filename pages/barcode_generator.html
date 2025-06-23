@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator (Nama & Kelas, Export PDF)</title>
+    <!-- Library untuk menghasilkan QR Code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Library untuk membuat file ZIP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <!-- Library untuk menyimpan file di sisi klien (digunakan oleh JSZip dan untuk PDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Library untuk membuat PDF dari JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* Styling dasar untuk body */
+        body {
+            font-family: 'Inter', sans-serif; /* Menggunakan font Inter */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* Mengubah ke flex-start untuk konten lebih panjang */
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px 0; /* Tambahkan padding atas/bawah */
+            background-color: #f0f2f5; /* Warna latar belakang abu-abu terang */
+            color: #333;
+        }
+        /* Styling untuk judul utama */
+        h1 {
+            color: #0056b3; /* Warna biru gelap */
+            margin-bottom: 25px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        /* Kontainer utama untuk input dan QR code */
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 600px; /* Lebar maksimum yang sedikit lebih besar */
+            margin-bottom: 30px; /* Jarak bawah */
+        }
+        /* Styling untuk label */
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: #555;
+            font-weight: 500;
+        }
+        /* Styling untuk textarea */
+        textarea {
+            width: calc(100% - 20px); /* Lebar penuh dikurangi padding */
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            font-size: 1em;
+            box-sizing: border-box; /* Pastikan padding termasuk dalam lebar */
+            min-height: 150px; /* Tinggi minimum textarea */
+            resize: vertical; /* Hanya izinkan resize vertikal */
+        }
+        textarea:focus {
+            border-color: #007bff; /* Border biru saat fokus */
+            outline: none; /* Hilangkan outline default */
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+        }
+        /* Styling untuk grup tombol */
+        .button-group {
+            display: flex;
+            flex-wrap: wrap; /* Izinkan tombol wrap di layar kecil */
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        /* Styling untuk tombol generate dan export */
+        button {
+            background-color: #28a745; /* Warna hijau default */
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+        }
+        /* Styling khusus untuk tombol export PNG */
+        button.export-png-button {
+            background-color: #007bff; /* Warna biru */
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+        }
+        button.export-png-button:hover {
+            background-color: #0056b3;
+        }
+        /* Styling khusus untuk tombol export ZIP */
+        button.export-zip-button {
+            background-color: #6f42c1; /* Warna ungu */
+            box-shadow: 0 4px 10px rgba(111, 66, 193, 0.3);
+        }
+        button.export-zip-button:hover {
+            background-color: #5a3597;
+        }
+        /* Styling khusus untuk tombol export PDF */
+        button.export-pdf-button {
+            background-color: #dc3545; /* Warna merah */
+            box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+        }
+        button.export-pdf-button:hover {
+            background-color: #c82333;
+        }
+        button:hover {
+            transform: translateY(-2px); /* Sedikit naik saat hover */
+        }
+        button:active {
+            transform: translateY(0); /* Kembali ke posisi semula saat diklik */
+        }
+        
+        /* Styling untuk area menampilkan banyak QR code */
+        #qrcodes-output {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap; /* Izinkan QR code untuk wrap ke baris berikutnya */
+            justify-content: center;
+            gap: 20px; /* Jarak antar QR code */
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 900px; /* Lebar maksimum untuk area output */
+        }
+        /* Styling untuk setiap kontainer QR code individual */
+        .qrcode-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .qrcode-item p {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #444;
+            text-align: center;
+            word-break: break-word;
+            max-width: 150px;
+            line-height: 1.2;
+        }
+        /* Styling untuk canvas di dalam QR code */
+        .qrcode-item canvas {
+            display: block;
+        }
+        /* Styling untuk instruksi */
+        .instructions {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.5;
+            text-align: left;
+        }
+        /* Styling untuk indikator loading ZIP/PDF */
+        #loading-message {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #007bff;
+            display: none; /* Sembunyikan secara default */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Pembuat QR Code Pengunjung (Nama & Kelas)</h1>
+
+    <div class="container">
+        <label for="visitorNames">Masukkan Nama dan Kelas Pengunjung (Format: Nama, Kelas - Satu entri per baris):</label>
+        <textarea id="visitorNames" placeholder="Contoh:&#10;Budi Santoso, 5A&#10;Ani Puspita&#10;Citra Dewi, 5A"></textarea>
+        
+        <div class="button-group">
+            <button onclick="generateQRCodes()">Buat QR Code</button>
+            <button class="export-png-button" onclick="exportAllQRCodesAsPNG()">Unduh Semua (PNG Individual)</button>
+            <button class="export-zip-button" onclick="exportAllQRCodesAsZIP()">Unduh Semua (ZIP)</button>
+            <button class="export-pdf-button" onclick="exportQRCodesToPdf()">Unduh Semua (PDF Siap Cetak)</button>
+        </div>
+        <div id="loading-message">Membuat file, mohon tunggu...</div>
+
+        <div class="instructions">
+            <p><strong>Cara Penggunaan:</strong></p>
+            <ol>
+                <li>Masukkan daftar nama dan kelas pengunjung ke kolom area teks di atas.</li>
+                <li>Gunakan format: <strong>Nama, Kelas</strong> (misalnya: `Budi Santoso, 5A`).</li>
+                <li>Pisahkan setiap entri dengan baris baru.</li>
+                <li>Klik tombol "Buat QR Code".</li>
+                <li>QR Code untuk setiap entri akan muncul di bawah.</li>
+                <li>Gunakan tombol "Unduh" untuk mendapatkan file QR Code dalam format yang diinginkan.</li>
+                <li>Gunakan aplikasi "Scanner Pengunjung" (`scanner.html`) di smartphone panitia untuk memindai setiap QR Code ini.</li>
+            </ol>
+        </div>
+    </div>
+
+    <div id="qrcodes-output">
+        <!-- QR code akan muncul di sini -->
+    </div>
+
+    <script>
+        // Array untuk menyimpan objek QR Code yang telah dibuat.
+        // Ini memungkinkan kita untuk mengakses canvas QR Code saat ingin mengunduh.
+        let generatedQRCodes = []; 
+
+        /**
+         * Fungsi untuk menghasilkan banyak QR Code dari input daftar nama pengunjung.
+         */
+        function generateQRCodes() {
+            const visitorNamesInput = document.getElementById('visitorNames');
+            const visitorNamesText = visitorNamesInput.value.trim(); 
+
+            const outputDiv = document.getElementById('qrcodes-output');
+            outputDiv.innerHTML = ''; // Bersihkan area output sebelum membuat yang baru
+            generatedQRCodes = []; // Kosongkan array QR Code yang disimpan
+
+            if (visitorNamesText) {
+                // Pisahkan nama-nama berdasarkan baris baru dan filter baris kosong
+                const entries = visitorNamesText.split('\n')
+                                                .map(entry => entry.trim())
+                                                .filter(entry => entry !== '');
+
+                if (entries.length === 0) {
+                    alert("Mohon masukkan setidaknya satu entri nama dan kelas pengunjung.");
+                    return;
+                }
+
+                entries.forEach((entry, index) => {
+                    const parts = entry.split(',').map(part => part.trim());
+                    let nama = parts[0] || 'Nama Tidak Diketahui';
+                    let kelas = parts[1] || 'Kelas Tidak Diketahui';
+
+                    // Data yang akan disimpan dalam QR Code sebagai string JSON
+                    const qrData = JSON.stringify({ nama: nama, kelas: kelas });
+
+                    const qrcodeItemDiv = document.createElement('div');
+                    qrcodeItemDiv.className = 'qrcode-item';
+
+                    const qrcodeDivId = `qrcode-${index}`; // ID unik untuk setiap div QR code
+                    const qrcodeContainer = document.createElement('div');
+                    qrcodeContainer.id = qrcodeDivId;
+
+                    const nameParagraph = document.createElement('p');
+                    nameParagraph.innerHTML = `<strong>${nama}</strong><br>${kelas}`; // Tampilkan nama dan kelas di bawah QR Code
+
+                    qrcodeItemDiv.appendChild(qrcodeContainer);
+                    qrcodeItemDiv.appendChild(nameParagraph);
+                    outputDiv.appendChild(qrcodeItemDiv);
+
+                    // Buat QR code baru di dalam kontainer uniknya
+                    const qrcodeInstance = new QRCode(document.getElementById(qrcodeDivId), {
+                        text: qrData, // Menggunakan string JSON sebagai teks QR Code
+                        width: 150, 
+                        height: 150,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.H
+                    });
+                    
+                    // Simpan objek QR code ini untuk akses nanti saat mengunduh
+                    generatedQRCodes.push({ name: nama, kelas: kelas, qrcodeInstance: qrcodeInstance, divId: qrcodeDivId });
+                });
+            } else {
+                alert("Mohon masukkan setidaknya satu entri nama dan kelas pengunjung terlebih dahulu!");
+            }
+        }
+
+        /**
+         * Fungsi untuk mengunduh semua QR Code yang saat ini ditampilkan sebagai file PNG individual.
+         */
+        function exportAllQRCodesAsPNG() {
+            if (generatedQRCodes.length === 0) {
+                alert("Tidak ada QR Code yang dihasilkan untuk diunduh.");
+                return;
+            }
+
+            generatedQRCodes.forEach(item => {
+                const qrcodeDiv = document.getElementById(item.divId);
+                const canvas = qrcodeDiv ? qrcodeDiv.querySelector('canvas') : null;
+
+                if (canvas) {
+                    const dataURL = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.href = dataURL;
+                    const cleanName = item.name.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, '_');
+                    const cleanClass = item.kelas.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, '_');
+                    link.download = `QR_Code_${cleanName}_${cleanClass}.png`;
+
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    console.warn(`Canvas tidak ditemukan untuk QR Code: ${item.name}`);
+                }
+            });
+
+            alert(`Berhasil mengunduh ${generatedQRCodes.length} QR Code secara individual.`);
+        }
+
+        /**
+         * Fungsi untuk mengunduh semua QR Code yang saat ini ditampilkan dalam satu file ZIP.
+         */
+        async function exportAllQRCodesAsZIP() {
+            if (generatedQRCodes.length === 0) {
+                alert("Tidak ada QR Code yang dihasilkan untuk diunduh.");
+                return;
+            }
+
+            const zip = new JSZip();
+            const loadingMessage = document.getElementById('loading-message');
+            loadingMessage.style.display = 'block'; // Tampilkan pesan loading
+
+            try {
+                for (const item of generatedQRCodes) {
+                    const qrcodeDiv = document.getElementById(item.divId);
+                    const canvas = qrcodeDiv ? qrcodeDiv.querySelector('canvas') : null;
+
+                    if (canvas) {
+                        // Konversi canvas ke blob
+                        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                        
+                        // Bersihkan nama file
+                        const cleanName = item.name.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, '_');
+                        const cleanClass = item.kelas.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, '_');
+                        const filename = `QR_Code_${cleanName}_${cleanClass}.png`;
+
+                        // Tambahkan blob ke file ZIP
+                        zip.file(filename, blob);
+                    } else {
+                        console.warn(`Canvas tidak ditemukan untuk QR Code: ${item.name}`);
+                    }
+                }
+
+                // Generate ZIP file
+                const content = await zip.generateAsync({ type: "blob" });
+
+                // Simpan file ZIP menggunakan FileSaver.js
+                saveAs(content, "qr_codes_pengunjung.zip");
+
+                alert(`Berhasil mengunduh ${generatedQRCodes.length} QR Code dalam file ZIP.`);
+
+            } catch (error) {
+                console.error("Error creating or downloading ZIP file:", error);
+                alert("Gagal membuat atau mengunduh file ZIP. Lihat konsol untuk detail.");
+            } finally {
+                loadingMessage.style.display = 'none'; // Sembunyikan pesan loading
+            }
+        }
+
+        /**
+         * Fungsi untuk mengekspor semua QR Code ke dalam dokumen PDF siap cetak.
+         */
+        async function exportQRCodesToPdf() {
+            if (generatedQRCodes.length === 0) {
+                alert("Tidak ada QR Code yang dihasilkan untuk diekspor ke PDF.");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait', // Potrait A4
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // --- PARAMETER CETAK QR CODE ---
+            const margin = 10; // Margin dari tepi halaman (mm)
+            const qrSize = 35; // Ukuran QR code di PDF (mm)
+            const textFontSize = 8; // Ukuran font teks untuk nama/kelas
+            const textLineHeight = 3.5; // Jarak antar baris teks (mm), disesuaikan
+            const textPaddingBelowQR = 3; // Jarak antara QR code dan teks pertama
+            // Lebar maksimum teks di bawah QR code. Biarkan lebih lebar sedikit dari QR untuk nama panjang
+            const textMaxWidth = qrSize + 5; 
+            const paddingBetweenItems = 5; // Jarak antar item QR secara horizontal dan vertikal
+            // --- AKHIR PARAMETER ---
+
+            // Set font dan gaya untuk teks (Helvetica adalah font standar di jsPDF)
+            // Default font for body text in PDF
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(textFontSize);
+
+            let currentX = margin;
+            let currentY = margin;
+            let pageCount = 1;
+
+            const loadingMessage = document.getElementById('loading-message');
+            loadingMessage.textContent = 'Membuat file PDF, mohon tunggu...';
+            loadingMessage.style.display = 'block';
+
+            try {
+                for (let i = 0; i < generatedQRCodes.length; i++) {
+                    const item = generatedQRCodes[i];
+                    const qrcodeDiv = document.getElementById(item.divId);
+                    const canvas = qrcodeDiv ? qrcodeDiv.querySelector('canvas') : null;
+
+                    if (!canvas) {
+                        console.warn(`Canvas tidak ditemukan untuk QR Code: ${item.name}`);
+                        continue; 
+                    }
+                    
+                    // --- PEMECANGAN DAN PENGUKURAN TEKS ---
+                    // Pecah nama dan kelas jika terlalu panjang, sesuaikan dengan lebar maksimum teks
+                    doc.setFont("helvetica", "bold"); // Sementara set bold untuk nama
+                    const nameLines = doc.splitTextToSize(item.name, textMaxWidth);
+                    
+                    doc.setFont("helvetica", "normal"); // Set normal untuk kelas
+                    const classLines = doc.splitTextToSize(item.kelas, textMaxWidth);
+
+                    // Hitung tinggi aktual total untuk item ini (QR + padding + tinggi nama + tinggi kelas)
+                    const actualTextHeight = (nameLines.length + classLines.length) * textLineHeight;
+                    const currentItemTotalHeight = qrSize + textPaddingBelowQR + actualTextHeight;
+                    // --- AKHIR PEMECANGAN DAN PENGUKURAN TEKS ---
+
+                    // --- LOGIKA PAGINASI DAN POSISI ---
+                    // Cek apakah item ini akan muat di baris saat ini secara horizontal
+                    if (currentX + qrSize > doc.internal.pageSize.getWidth() - margin) {
+                        currentX = margin; // Pindah ke awal baris baru
+                        currentY += currentItemTotalHeight + paddingBetweenItems; // Pindah ke bawah
+                    }
+
+                    // Cek apakah item ini (setelah potensi pindah baris) akan muat di halaman saat ini secara vertikal
+                    if (currentY + currentItemTotalHeight > doc.internal.pageSize.getHeight() - margin) {
+                        doc.addPage(); // Tambah halaman baru
+                        currentX = margin; // Reset ke awal halaman baru
+                        currentY = margin;
+                        pageCount++;
+                    }
+                    // --- AKHIR LOGIKA PAGINASI ---
+
+                    // Dapatkan data URL gambar dari canvas
+                    const imgData = canvas.toDataURL('image/png');
+
+                    // Tambahkan gambar QR code ke PDF
+                    doc.addImage(imgData, 'PNG', currentX, currentY, qrSize, qrSize);
+
+                    // Posisikan teks di bawah QR code
+                    let textY = currentY + qrSize + textPaddingBelowQR;
+                    
+                    // Cetak nama (bold)
+                    doc.setFont("helvetica", "bold");
+                    for (const line of nameLines) {
+                        const lineWidth = doc.getStringUnitWidth(line) * textFontSize / doc.internal.scaleFactor;
+                        doc.text(line, currentX + (qrSize - lineWidth) / 2, textY); // Pusatkan teks
+                        textY += textLineHeight;
+                    }
+                    
+                    // Cetak kelas (normal/regular)
+                    doc.setFont("helvetica", "normal");
+                    for (const line of classLines) {
+                        const lineWidth = doc.getStringUnitWidth(line) * textFontSize / doc.internal.scaleFactor;
+                        doc.text(line, currentX + (qrSize - lineWidth) / 2, textY); // Pusatkan teks
+                        textY += textLineHeight;
+                    }
+
+                    // Pindahkan posisi X untuk QR code berikutnya di baris yang sama
+                    currentX += qrSize + paddingBetweenItems;
+                }
+
+                doc.save("qr_codes_siap_cetak.pdf");
+                alert(`Berhasil mengunduh ${generatedQRCodes.length} QR Code dalam file PDF (${pageCount} halaman).`);
+
+            } catch (error) {
+                console.error("Error creating or downloading PDF:", error);
+                alert("Gagal membuat atau mengunduh file PDF. Lihat konsol untuk detail.");
+            } finally {
+                loadingMessage.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
